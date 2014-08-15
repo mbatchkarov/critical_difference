@@ -17,7 +17,7 @@ Demo
 First we define a bunch of method names and their respective scores.
 ```python
 names = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
-scores = [31.43, 20.00, 28.93, 19.64, 25, 33.4]
+scores = sorted([31.43, 20.00, 28.93, 19.64, 25, 33.4]) # note the call to sorted
 
 ```
 We then write a function that takes the scores and returns the indices of methods
@@ -32,6 +32,10 @@ that no duplicate are should be contained in the list. Examples:
  - `[(0, 1), (3, 4), (4, 5)]` is correct
  - `[(0, 1), (3, 4), (4, 5), (3,4)]` contains a duplicate
  - `[(4, 3)]` contains a non-sorted tuple
+
+**Note:** the indices returned by this callable should refer to positions in `scores`
+after it is sorted in increasing order. It is to avoid confusion `graph_ranks`
+raises if `scores` is not sorted
 
 We can then plot the desired diagram and save it to disk:
 
@@ -48,7 +52,9 @@ print_figure(fig, "test.png", format='png')
 
 Here is another real-word example:
 
+![Screenshot 2](img/2.png "Example 2")
+
 License
 ===
-This program is a modified version of that found in [Orange](https://bitbucket.org/biolab/orange/src/a4303110189426d004156ce053ddb35a410e428a/Orange/evaluation/scoring.py)
+This program is based on code found in [Orange](https://bitbucket.org/biolab/orange/src/a4303110189426d004156ce053ddb35a410e428a/Orange/evaluation/scoring.py)
 and is distributed under the terms of the GNU General Public License Version 3.

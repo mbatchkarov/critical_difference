@@ -11,13 +11,13 @@ def print_figure(fig, *args, **kwargs):
 
 def merge_nonsignificant_cliques(not_sig):
     # keep only longest
-    def no_longer(i, j, not_sig):
+    def contained_in_larger_interval(i, j, not_sig):
         for i1, j1 in not_sig:
             if (i1 <= i and j1 > j) or (i1 < i and j1 >= j):
-                return False
-        return True
+                return True
+        return False
 
-    longest = [(i, j) for i, j in not_sig if no_longer(i, j, not_sig)]
+    longest = [(i, j) for i, j in not_sig if not contained_in_larger_interval(i, j, not_sig)]
 
     return longest
 
@@ -41,6 +41,7 @@ def graph_ranks(scores, names, get_linked_methods,
     https://bitbucket.org/biolab/orange/src/a4303110189426d004156ce053ddb35a410e428a/Orange/evaluation/scoring.py
 
     :param scores: List of average methods' scores.
+    :type scores: list
     :param names: List of methods' names.
     :param get_linked_methods: callable that returns a list of tuples of indices of all pairs of methods
     that are not significantly different and should be connected in the diagram. Each tuple must be sorted,
@@ -52,7 +53,11 @@ def graph_ranks(scores, names, get_linked_methods,
          - [(4, 3)] contains a non-sorted tuple
 
     If there is a cluster of non-significant differences (e.g. 1=2, 2=3, 1=3), `graph_ranks` will draw
-    just a single link connecting all of them
+    just a single link connecting all of them.
+
+    Note: the indices returned by this callable should refer to positions in `scores` after it is sorted in increasing
+    order. It is to avoid confusion this function raises if `scores` is not sorted.
+
     :param lowv: The lowest shown score, if None, use min(scores).
     :param highv: The highest shown score, if None, use max(scores).
     :param width: Width of the drawn figure in inches, default 6 in.
@@ -62,6 +67,10 @@ def graph_ranks(scores, names, get_linked_methods,
     :param reverse:  If True, the lowest rank is on the right. Default is False.
 
     """
+
+    if sorted(scores) != scores:
+        raise ValueError('scores must be sorted to avoid confusion.')
+
     width = float(width)
     textspace = float(textspace)
 
@@ -146,10 +155,9 @@ def graph_ranks(scores, names, get_linked_methods,
         line([(rankpos(a), cline - tick / 2), (rankpos(a), cline)], linewidth=0.7)
 
     # tick labels on the x axis
-    for a in list(numpy.arange(lowv, highv + 1, tickstep)) + [highv]:
-        a = int(a)
+    for a in list(numpy.arange(lowv, highv, tickstep)) + [highv]:
         # todo add bbox=dict(facecolor='red', alpha=0.5) to see how text is aligned to ticks
-        text(rankpos(a), cline - tick / 2, str(a), ha="left", va="bottom")
+        text(rankpos(a), cline - tick / 2, '%1.1f' % a, ha="left", va="bottom")
 
     k = len(ssums)
 
@@ -166,9 +174,9 @@ def graph_ranks(scores, names, get_linked_methods,
         text(textspace + scalewidth + 0.2, chei, nnames[i], ha="left", va="center", **kwargs)
 
     # if cd and cdmethod is None:
-    #     # if we want to annotate a single method with the critical difference
+    # # if we want to annotate a single method with the critical difference
     #
-    #     # upper scale
+    # # upper scale
     #     if not reverse:
     #         begin, end = rankpos(lowv), rankpos(lowv + cd)
     #     else:
@@ -183,7 +191,7 @@ def graph_ranks(scores, names, get_linked_methods,
     def draw_lines(lines, side=0.01, height=0.1):
         # side = how much horizontal overhang should there be
         # height = how much vertical space between lines connecting non-significant methods
-        start = cline + .2 # vertical offset from the axis
+        start = cline + .2  # vertical offset from the axis
         for l, r in lines:
             line([(rankpos(ssums[l]) - side, start), (rankpos(ssums[r]) + side, start)], linewidth=2.5)
             start += height
@@ -202,7 +210,6 @@ def graph_ranks(scores, names, get_linked_methods,
     return fig
 
 
-
 def get_close_pairs(scores, threshold=1):
     # get all pairs
     n_methods = len(scores)
@@ -211,17 +218,13 @@ def get_close_pairs(scores, threshold=1):
     not_sig = [(i, j) for i, j in allpairs if abs(scores[i] - scores[j]) <= threshold]
     return not_sig
 
+
 def my_get_lines(*args):
     return [(3, 4), (4, 5), (3, 5)]
 
-def all_but_the_extremes(scores):
-    k = len(scores)
-    allpairs = list(combinations(range(k), 2))
-    allpairs.pop(k-2)
-    return allpairs
 
 if __name__ == "__main__":
-    avranks = [31.43, 20.00, 28.93, 19.64, 25, 33.4]
+    avranks = sorted([31.43, 20.00, 28.93, 19.64, 25, 33.4])
     names = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
     fig = graph_ranks(avranks, names, my_get_lines, fontsize=10)
     print_figure(fig, "test.png", format='png')
