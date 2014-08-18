@@ -1,7 +1,8 @@
 from itertools import combinations
-from matplotlib.figure import Figure
+from math import ceil
+import matplotlib.pylab as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
-import numpy
+from matplotlib.lines import Line2D
 
 
 def print_figure(fig, *args, **kwargs):
@@ -22,26 +23,25 @@ def merge_nonsignificant_cliques(not_sig):
     return longest
 
 
-def graph_ranks(scores, names, get_linked_methods,
-                lowv=None, highv=None, width=6, textspace=1.5,
-                reverse=False, tickstep=3, **kwargs):
+def do_plot(x, get_linked_methods, names=None,
+            arrow_vgap=.2,
+            link_voffset=.15, link_vgap=.1
+):
     """
     Draws a critical difference graph, which is used to display  the differences in methods'
     performance. This is inspired by the plots used in:
 
     See Janez Demsar, Statistical Comparisons of Classifiers over
-    Multiple Data Sets, 7(Jan):1--30, 2006. 
+    Multiple Data Sets, 7(Jan):1--30, 2006.
 
     Methods are drawn on an axis and connected with a line if their performance is not significantly
     different.
 
-    Needs matplotlib to work.
+    Requires `matplotlib`
 
-    Code here is a modified version of that found in Orange:
-    https://bitbucket.org/biolab/orange/src/a4303110189426d004156ce053ddb35a410e428a/Orange/evaluation/scoring.py
+    :param x: List of average methods' scores.
+    :type x: list-like
 
-    :param scores: List of average methods' scores.
-    :type scores: list
     :param names: List of methods' names.
     :param get_linked_methods: callable that returns a list of tuples of indices of all pairs of methods
     that are not significantly different and should be connected in the diagram. Each tuple must be sorted,
@@ -57,156 +57,57 @@ def graph_ranks(scores, names, get_linked_methods,
 
     Note: the indices returned by this callable should refer to positions in `scores` after it is sorted in increasing
     order. It is to avoid confusion this function raises if `scores` is not sorted.
-
-    :param lowv: The lowest shown score, if None, use min(scores).
-    :param highv: The highest shown score, if None, use max(scores).
-    :param width: Width of the drawn figure in inches, default 6 in.
-    :param textspace: Space on figure sides left for the description
-                      of methods, default 1 in.
-    :param tickstep: space between ticks on the axis, in whatever units `scores` is in
-    :param reverse:  If True, the lowest rank is on the right. Default is False.
-
+    :param arrow_vgap: vertical space between the arrows that point to method names.  Scale is 0 to 1, fraction of axis
+    :param link_vgap: vertical space between the lines that connect methods that are not significantly different.
+     Scale is 0 to 1, fraction of axis size
+    :param link_voffset: offset from the axis of the links that connect non-significant methods
     """
+    if names is None:
+        names = range(len(x))
 
-    if sorted(scores) != scores:
-        raise ValueError('scores must be sorted to avoid confusion.')
+    # remove both axes and the frame
+    # http://www.shocksolution.com/2011/08/removing-an-axis-or-both-axes-from-a-matplotlib-plot/
+    fig, ax = plt.subplots(1, 1, figsize=(6, 2), subplot_kw=dict(frameon=False))
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().set_visible(False)
 
-    width = float(width)
-    textspace = float(textspace)
+    size = len(x)
+    y = [0] * size
+    ax.plot(x, y, 'ko')
 
-    tempsort = sorted([(a, i) for i, a in enumerate(scores)], reverse=reverse)
-    ssums = [foo[0] for foo in tempsort]
-    sortidx = [foo[1] for foo in tempsort]
-    nnames = [names[x] for x in sortidx]
+    plt.xlim(0.8 * x[0] - 0.1, 1.2 * x[-1] + 0.1)
+    plt.ylim(0, 1)
 
-    if lowv is None:
-        lowv = min(scores)
-    if highv is None:
-        highv = max(scores)
+    # draw the x axis again
+    # this must be done after plotting
+    xmin, xmax = ax.get_xaxis().get_view_interval()
+    ymin, ymax = ax.get_yaxis().get_view_interval()
+    ax.add_artist(Line2D((xmin, xmax), (ymin, ymin), color='black', linewidth=2))
 
-    cline = 0.4
+    half = int(ceil(len(x) / 2.))
+    # make sure the topmost annotation in at 90% of figure height
+    ycoords = list(reversed([0.9 - arrow_vgap * i for i in range(half)]))
+    ycoords.extend(reversed(ycoords))
+    for i in range(size):
+        ax.annotate(str(names[i]),
+                    xy=(x[i], y[i]),
+                    xytext=(-.05 if i < half else .95,  # x coordinate
+                            ycoords[i]),  # y coordinate
+                    textcoords='axes fraction',
+                    ha='center', va='center',
+                    arrowprops=dict(arrowstyle='-',
+                                    connectionstyle='angle,angleA=0,angleB=90'))
 
-    k = len(scores)
+    linked_methods = merge_nonsignificant_cliques(get_linked_methods())
+    used_endpoints = set()
+    y = link_voffset
+    for i, (x1, x2) in enumerate(sorted(linked_methods)):
+        # not lift if it will overlap with an existing line
+        if any(x1 <= foo for foo in used_endpoints):
+            y += link_vgap
+        plt.hlines(y, x[x1], x[x2], linewidth=3)  # y, x0, x1
 
-    scalewidth = width - 2 * textspace
-
-    def rankpos(rank):
-        if not reverse:
-            a = rank - lowv
-        else:
-            a = highv - rank
-        return textspace + scalewidth / (highv - lowv) * a
-
-    # get pairs of non significant methods
-    linked = get_linked_methods(ssums)
-    lines = merge_nonsignificant_cliques(linked)
-    linesblank = 0.2 + 0.2 + (len(lines) - 1) * 0.1
-
-    # add scale
-    distanceh = 0.25
-    cline += distanceh
-
-    # calculate height needed height of an image
-    minnotsignificant = max(2 * 0.2, linesblank)
-    height = cline + ((k + 1) / 2) * 0.2 + minnotsignificant
-
-    fig = Figure(figsize=(width, height))
-    ax = fig.add_axes([0, 0, 1, 1])  # reverse y axis
-    ax.set_axis_off()
-
-    hf = 1. / height  # height factor
-    wf = 1. / width
-
-    def hfl(l):
-        return [a * hf for a in l]
-
-    def wfl(l):
-        return [a * wf for a in l]
-
-
-    # Upper left corner is (0,0).
-
-    ax.plot([0, 1], [0, 1], c="w")
-    ax.set_xlim(0, 1)
-    ax.set_ylim(1, 0)
-
-    def line(l, color='k', **kwargs):
-        """
-        Input is a list of pairs of points.
-        """
-        a = [x[0] for x in l]
-        b = [x[1] for x in l]
-        ax.plot(wfl(a), hfl(b), color=color, **kwargs)
-
-    def text(x, y, s, *args, **kwargs):
-        ax.text(wf * x, hf * y, s, *args, **kwargs)
-
-    # main axis
-    line([(textspace, cline), (width - textspace, cline)], linewidth=0.7)
-
-    bigtick = 0.1
-    smalltick = 0.05
-
-    tick = None
-    # ticks on the x-axis
-    for a in list(numpy.arange(lowv, highv, tickstep)) + [highv]:
-        tick = smalltick
-        if a == int(a): tick = bigtick
-        line([(rankpos(a), cline - tick / 2), (rankpos(a), cline)], linewidth=0.7)
-
-    # tick labels on the x axis
-    for a in list(numpy.arange(lowv, highv, tickstep)) + [highv]:
-        # todo add bbox=dict(facecolor='red', alpha=0.5) to see how text is aligned to ticks
-        text(rankpos(a), cline - tick / 2, '%1.1f' % a, ha="left", va="bottom")
-
-    k = len(ssums)
-
-    # 'arrows' pointing to the first half of the method names
-    for i in range((k + 1) // 2):
-        chei = cline + minnotsignificant + i * 0.2
-        line([(rankpos(ssums[i]), cline), (rankpos(ssums[i]), chei), (textspace - 0.1, chei)], linewidth=0.7)
-        text(textspace - 0.2, chei, nnames[i], ha="right", va="center", **kwargs)
-    # arrows pointing to the second half of method names
-    for i in range((k + 1) // 2, k):
-        chei = cline + minnotsignificant + (k - i - 1) * 0.2
-        line([(rankpos(ssums[i]), cline), (rankpos(ssums[i]), chei), (textspace + scalewidth + 0.1, chei)],
-             linewidth=0.7)
-        text(textspace + scalewidth + 0.2, chei, nnames[i], ha="left", va="center", **kwargs)
-
-    # if cd and cdmethod is None:
-    # # if we want to annotate a single method with the critical difference
-    #
-    # # upper scale
-    #     if not reverse:
-    #         begin, end = rankpos(lowv), rankpos(lowv + cd)
-    #     else:
-    #         begin, end = rankpos(highv), rankpos(highv - cd)
-    #
-    #     # draw a line as large as the CD above the main plot to give a sense of scale
-    #     # line([(begin, distanceh), (end, distanceh)], linewidth=0.7)
-    #     # line([(begin, distanceh + bigtick / 2), (begin, distanceh - bigtick / 2)], linewidth=0.7)
-    #     # line([(end, distanceh + bigtick / 2), (end, distanceh - bigtick / 2)], linewidth=0.7)
-    #     # text((begin + end) / 2, distanceh - 0.05, "CD", ha="center", va="bottom")
-    #
-    def draw_lines(lines, side=0.01, height=0.1):
-        # side = how much horizontal overhang should there be
-        # height = how much vertical space between lines connecting non-significant methods
-        start = cline + .2  # vertical offset from the axis
-        for l, r in lines:
-            line([(rankpos(ssums[l]) - side, start), (rankpos(ssums[r]) + side, start)], linewidth=2.5)
-            start += height
-
-    # draw the lines that connect methods that are not significantly different
-    draw_lines(lines)
-    #
-    # elif cd:
-    #     # draw a single fat line on the x axis centered around `cdmethod`
-    #     begin = rankpos(scores[cdmethod] - cd)
-    #     end = rankpos(scores[cdmethod] + cd)
-    #     line([(begin, cline), (end, cline)], linewidth=2.5)
-    #     line([(begin, cline + bigtick / 2), (begin, cline - bigtick / 2)], linewidth=2.5)
-    #     line([(end, cline + bigtick / 2), (end, cline - bigtick / 2)], linewidth=2.5)
-
+        used_endpoints.add(x2)
     return fig
 
 
@@ -220,11 +121,11 @@ def get_close_pairs(scores, threshold=1):
 
 
 def my_get_lines(*args):
-    return [(3, 4), (4, 5), (3, 5)]
+    return [(3, 4), (4, 5), (3, 5), (2, 3)]
 
 
 if __name__ == "__main__":
-    avranks = sorted([31.43, 20.00, 28.93, 19.64, 25, 33.4])
+    scores = sorted([31.43, 20.00, 28.93, 19.64, 25, 33.4])
     names = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
-    fig = graph_ranks(avranks, names, my_get_lines, fontsize=10)
+    fig = do_plot(scores, my_get_lines, names)
     print_figure(fig, "test.png", format='png')
