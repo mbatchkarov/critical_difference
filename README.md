@@ -23,7 +23,7 @@ scores = sorted([31.43, 20.00, 28.93, 19.64, 25, 33.4]) # note the call to sorte
 We then write a function that takes the scores and returns the indices of methods
 that are not different
 ```
-def my_get_lines(method_scores):
+def my_get_lines(*args):
     return [(3, 4), (4, 5), (3, 5)]
 ```
 This program performs little to no validation of the inputs, so it's your
@@ -40,9 +40,9 @@ raises if `scores` is not sorted
 We can then plot the desired diagram and save it to disk:
 
 ```python
-from critical_difference.plot import graph_ranks, print_figure
+from critical_difference.plot import do_plot, print_figure
 
-fig = graph_ranks(scores, names, my_get_lines)
+fig = do_plot(scores, my_get_lines, names)
 print_figure(fig, "test.png", format='png')
 
 ```
@@ -50,11 +50,14 @@ print_figure(fig, "test.png", format='png')
 ![Screenshot 1](img/1.png "Example 1")
 
 
-Here is another real-word example:
+Note that since methods 3, 4 and 5 are all statistically indistinguishable, the code
+draws a single line connecting all three of them to improve legibility. The vertical spacing
+between lines can be controlled- see function docstring.
 
-![Screenshot 2](img/2.png "Example 2")
+Notes
+====
 
-License
-===
-This program is based on code found in [Orange](https://bitbucket.org/biolab/orange/src/a4303110189426d004156ce053ddb35a410e428a/Orange/evaluation/scoring.py)
-and is distributed under the terms of the GNU General Public License Version 3.
+Version 1 was based on code found in [Orange](https://bitbucket.org/biolab/orange/src/a4303110189426d004156ce053ddb35a410e428a/Orange/evaluation/scoring.py).
+This is version 2.0, which was re-written from scratch and relies more healivy on `matplotlib`.
+It has been tested on Python 2.7 and 3.3. All code is distributed under the terms of
+ the GNU General Public License Version 3.

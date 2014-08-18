@@ -63,7 +63,7 @@ def do_plot(x, get_linked_methods, names=None,
     :param link_voffset: offset from the axis of the links that connect non-significant methods
     """
     if names is None:
-        names = range(len(x))
+        names = list(range(len(x)))
 
     # remove both axes and the frame
     # http://www.shocksolution.com/2011/08/removing-an-axis-or-both-axes-from-a-matplotlib-plot/
