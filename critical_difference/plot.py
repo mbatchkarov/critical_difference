@@ -116,19 +116,20 @@ def do_plot(x, get_linked_methods, names=None,
         # 1. can we lower it any further- not if it would be too low and if it
         # would overlap another line
         if y > link_voffset and overlaps_any((x1, y - dy), used_endpoints):
-            print('going down')
+            # print('going down')
             y -= dy
         # 2. can we draw it at the current value of y- not if its left
         # end would overlap with the right end of an existing line
         # need to lift up a bit
         elif overlaps_any((x1, y), used_endpoints):
-            print('going up')
+            # print('going up')
             y += dy
         else:
-            print('staying at the same y level')
+            pass
+            # print('staying at the same y level')
 
         plt.hlines(y, x[x1], x[x2], linewidth=3)  # y, x0, x1
-        print('Drawing from %r to %r at height %r' % (x1, x2, y))
+        # print('Drawing from %r to %r at height %r' % (x1, x2, y))
 
         used_endpoints.add((x1, y))
         used_endpoints.add((x2, y))
