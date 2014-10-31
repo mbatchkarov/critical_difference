@@ -10,16 +10,16 @@ def print_figure(fig, *args, **kwargs):
     canvas.print_figure(*args, **kwargs)
 
 
+def _contained_in_larger_interval(i, j, not_sig):
+    for i1, j1 in not_sig:
+        if (i1 <= i and j1 > j) or (i1 < i and j1 >= j):
+            return True
+    return False
+
+
 def merge_nonsignificant_cliques(not_sig):
     # keep only longest
-    def contained_in_larger_interval(i, j, not_sig):
-        for i1, j1 in not_sig:
-            if (i1 <= i and j1 > j) or (i1 < i and j1 >= j):
-                return True
-        return False
-
-    longest = [(i, j) for i, j in not_sig if not contained_in_larger_interval(i, j, not_sig)]
-
+    longest = [(i, j) for i, j in not_sig if not _contained_in_larger_interval(i, j, not_sig)]
     return longest
 
 
@@ -98,16 +98,40 @@ def do_plot(x, get_linked_methods, names=None,
                     arrowprops=dict(arrowstyle='-',
                                     connectionstyle='angle,angleA=0,angleB=90'))
 
+    # draw horizontal lines linking non-significant methods
     linked_methods = merge_nonsignificant_cliques(get_linked_methods())
-    used_endpoints = set()
+    used_endpoints = set()  # where do the existing lines begin and end, (X, Y) coords
     y = link_voffset
-    for i, (x1, x2) in enumerate(sorted(linked_methods)):
-        # not lift if it will overlap with an existing line
-        if any(x1 <= foo for foo in used_endpoints):
-            y += link_vgap
-        plt.hlines(y, x[x1], x[x2], linewidth=3)  # y, x0, x1
+    dy = link_vgap
 
-        used_endpoints.add(x2)
+    def overlaps_any(foo, existing):
+        """
+        Checks if the proposed horizontal line (given with its x-y coordinates)
+        overlaps any of the existing horizontal lines
+        """
+        return _contained_in_larger_interval(foo[0], foo[1], existing)
+
+    for i, (x1, x2) in enumerate(sorted(linked_methods)):
+        # determine how far up/down the line should be drawn
+        # 1. can we lower it any further- not if it would be too low and if it
+        # would overlap another line
+        if y > link_voffset and overlaps_any((x1, y - dy), used_endpoints):
+            print('going down')
+            y -= dy
+        # 2. can we draw it at the current value of y- not if its left
+        # end would overlap with the right end of an existing line
+        # need to lift up a bit
+        elif overlaps_any((x1, y), used_endpoints):
+            print('going up')
+            y += dy
+        else:
+            print('staying at the same y level')
+
+        plt.hlines(y, x[x1], x[x2], linewidth=3)  # y, x0, x1
+        print('Drawing from %r to %r at height %r' % (x1, x2, y))
+
+        used_endpoints.add((x1, y))
+        used_endpoints.add((x2, y))
     return fig
 
 
@@ -121,7 +145,9 @@ def get_close_pairs(scores, threshold=1):
 
 
 def my_get_lines(*args):
-    return [(3, 4), (4, 5), (3, 5), (2, 3)]
+    return [(0, 1), (1, 2), (2, 3),  # these three should be drawn on 2 level
+            (3, 4), (3, 5), (4, 5),  # this is a clique, just one line should be drawn
+    ]
 
 
 if __name__ == "__main__":
