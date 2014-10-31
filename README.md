@@ -52,12 +52,15 @@ print_figure(fig, "test.png", format='png')
 
 Note that since methods 3, 4 and 5 are all statistically indistinguishable, the code
 draws a single line connecting all three of them to improve legibility. The vertical spacing
-between lines can be controlled- see function docstring.
+between lines can be controlled- see function docstring. This is needed when more that 6-8 methods are
+being compared, as the vertical spacing between labelled arrows (e.g. "first", "second", etc above)
+will be reduced, and the bold horizontal lines may end up too high.
+
 
 Notes
 ====
 
 Version 1 was based on code found in [Orange](https://bitbucket.org/biolab/orange/src/a4303110189426d004156ce053ddb35a410e428a/Orange/evaluation/scoring.py).
-This is version 2.0, which was re-written from scratch and relies more healivy on `matplotlib`.
+This is version 2.1, which was re-written from scratch and relies more healivy on `matplotlib`.
 It has been tested on Python 2.7 and 3.3. All code is distributed under the terms of
  the GNU General Public License Version 3.
