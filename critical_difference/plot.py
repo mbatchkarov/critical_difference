@@ -75,7 +75,7 @@ def do_plot(x, get_linked_methods, names=None,
     y = [0] * size
     ax.plot(x, y, 'ko')
 
-    plt.xlim(0.8 * x[0] - 0.1, 1.2 * x[-1] + 0.1)
+    plt.xlim(0.9 * x[0], 1.1 * x[-1])
     plt.ylim(0, 1)
 
     # draw the x axis again
