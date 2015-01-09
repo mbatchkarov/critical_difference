@@ -24,8 +24,8 @@ def merge_nonsignificant_cliques(not_sig):
 
 
 def do_plot(x, get_linked_methods, names=None,
-            arrow_vgap=.2,
-            link_voffset=.15, link_vgap=.1
+            arrow_vgap=.2, link_voffset=.15, link_vgap=.1,
+            xlabel=None
 ):
     """
     Draws a critical difference graph, which is used to display  the differences in methods'
@@ -83,6 +83,12 @@ def do_plot(x, get_linked_methods, names=None,
     xmin, xmax = ax.get_xaxis().get_view_interval()
     ymin, ymax = ax.get_yaxis().get_view_interval()
     ax.add_artist(Line2D((xmin, xmax), (ymin, ymin), color='black', linewidth=2))
+
+    # add an optional label to the x axis
+    if xlabel:
+        ax.annotate(xlabel, xy=(xmax, 0), xytext=(0.95, 0.1),
+                    textcoords='axes fraction', ha='center', va='center',
+                    fontsize=9)  # text slightly smaller
 
     half = int(ceil(len(x) / 2.))
     # make sure the topmost annotation in at 90% of figure height
@@ -154,5 +160,5 @@ def my_get_lines(*args):
 if __name__ == "__main__":
     scores = sorted([31.43, 20.00, 28.93, 19.64, 25, 33.4])
     names = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
-    fig = do_plot(scores, my_get_lines, names)
+    fig = do_plot(scores, my_get_lines, names, xlabel='accuracy, %')
     print_figure(fig, "test.png", format='png')
