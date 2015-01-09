@@ -24,8 +24,8 @@ def merge_nonsignificant_cliques(not_sig):
 
 
 def do_plot(x, get_linked_methods, names=None,
-            arrow_vgap=.2,
-            link_voffset=.15, link_vgap=.1
+            arrow_vgap=.2, link_voffset=.15, link_vgap=.1,
+            xlabel=None
 ):
     """
     Draws a critical difference graph, which is used to display  the differences in methods'
@@ -84,6 +84,12 @@ def do_plot(x, get_linked_methods, names=None,
     ymin, ymax = ax.get_yaxis().get_view_interval()
     ax.add_artist(Line2D((xmin, xmax), (ymin, ymin), color='black', linewidth=2))
 
+    # add an optional label to the x axis
+    if xlabel:
+        ax.annotate(xlabel, xy=(xmax, 0), xytext=(0.95, 0.1),
+                    textcoords='axes fraction', ha='center', va='center',
+                    fontsize=9)  # text slightly smaller
+
     half = int(ceil(len(x) / 2.))
     # make sure the topmost annotation in at 90% of figure height
     ycoords = list(reversed([0.9 - arrow_vgap * i for i in range(half)]))
@@ -111,7 +117,6 @@ def do_plot(x, get_linked_methods, names=None,
         """
         return _contained_in_larger_interval(foo[0], foo[1], existing)
 
-    colors = 'rgb'
     for i, (x1, x2) in enumerate(sorted(linked_methods)):
         # determine how far up/down the line should be drawn
         # 1. can we lower it any further- not if it would be too low and if it
@@ -129,7 +134,7 @@ def do_plot(x, get_linked_methods, names=None,
             pass
             # print('staying at the same y level')
 
-        plt.hlines(y, x[x1], x[x2], linewidth=3, color=colors[i % len(colors)])  # y, x0, x1
+        plt.hlines(y, x[x1], x[x2], linewidth=3)  # y, x0, x1
         # print('Drawing from %r to %r at height %r' % (x1, x2, y))
 
         used_endpoints.add((x1, y))
@@ -155,5 +160,5 @@ def my_get_lines(*args):
 if __name__ == "__main__":
     scores = sorted([31.43, 20.00, 28.93, 19.64, 25, 33.4])
     names = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
-    fig = do_plot(scores, my_get_lines, names)
+    fig = do_plot(scores, my_get_lines, names, xlabel='accuracy, %')
     print_figure(fig, "test.png", format='png')
