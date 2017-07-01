@@ -1,4 +1,3 @@
-from itertools import combinations
 from math import ceil
 
 import matplotlib.pylab as plt
@@ -81,8 +80,8 @@ def do_plot(x, insignificant_indices, names=None,
     # this must be done after plotting
     xmin, xmax = ax.get_xaxis().get_view_interval()
     ymin, ymax = ax.get_yaxis().get_view_interval()
-    ax.add_artist(
-        Line2D((xmin, xmax), (ymin, ymin), color='black', linewidth=2))
+    ax.add_artist(Line2D((xmin, xmax), (ymin, ymin),
+                         color='black', linewidth=2))
 
     # add an optional label to the x axis
     if xlabel:
@@ -101,8 +100,8 @@ def do_plot(x, insignificant_indices, names=None,
                             ycoords[i]),  # y coordinate
                     textcoords='axes fraction',
                     ha='center', va='center',
-                    arrowprops=dict(arrowstyle='-',
-                                    connectionstyle='angle,angleA=0,angleB=90'))
+                    arrowprops={'arrowstyle': '-',
+                                'connectionstyle': 'angle,angleA=0,angleB=90'})
 
     # draw horizontal lines linking non-significant methods
     linked_methods = merge_nonsignificant_cliques(insignificant_indices)
@@ -136,16 +135,6 @@ def do_plot(x, insignificant_indices, names=None,
 
         used_endpoints.add((x1, y))
         used_endpoints.add((x2, y))
-
-
-def get_close_pairs(scores, threshold=1):
-    # get all pairs
-    n_methods = len(scores)
-    allpairs = list(combinations(range(n_methods), 2))
-
-    not_sig = [(i, j) for i, j in allpairs if
-               abs(scores[i] - scores[j]) <= threshold]
-    return not_sig
 
 
 if __name__ == "__main__":
