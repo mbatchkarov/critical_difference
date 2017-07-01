@@ -20,30 +20,29 @@ names = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
 scores = sorted([31.43, 20.00, 28.93, 19.64, 25, 33.4]) # note the call to sorted
 
 ```
-We then write a function that takes the scores and returns the indices of methods
-that are not different
+We then use any statistical method to decide if a pair of models is significantly 
+different, and store the indices of methods that are not different
 ```
-def my_get_lines(*args):
-    return [(3, 4), (4, 5), (3, 5)]
+# use your preferred method to test for significance
+same = [(3, 4), (4, 5), (3, 5)]
 ```
-This program performs little to no validation of the inputs, so it's your
+This program performs very little input validation, so it's your
 responsibility to ensure that each tuple in the returned list is be sorted and
 that no duplicate are should be contained in the list. Examples:
  - `[(0, 1), (3, 4), (4, 5)]` is correct
  - `[(0, 1), (3, 4), (4, 5), (3,4)]` contains a duplicate
  - `[(4, 3)]` contains a non-sorted tuple
 
-**Note:** the indices returned by this callable should refer to positions in `scores`
+**Note:** the indices should refer to positions in `scores`
 after it is sorted in increasing order. It is to avoid confusion `graph_ranks`
 raises if `scores` is not sorted
 
-We can then plot the desired diagram and save it to disk:
+We can then plot the desired diagram:
 
 ```python
-from critical_difference.plot import do_plot, print_figure
+from critical_difference.plot import do_plot
 
-fig = do_plot(scores, my_get_lines, names)
-print_figure(fig, "test.png", format='png')
+fig = do_plot(scores, same, names)
 
 ```
 
@@ -60,7 +59,7 @@ will be reduced, and the bold horizontal lines may end up too high.
 Notes
 ====
 
-Version 1 was based on code found in [Orange](https://bitbucket.org/biolab/orange/src/a4303110189426d004156ce053ddb35a410e428a/Orange/evaluation/scoring.py).
-This is version 2.1, which was re-written from scratch and relies more healivy on `matplotlib`.
-It has been tested on Python 2.7 and 3.3. All code is distributed under the terms of
+Version 1 was based on code found in [Orange](https://bitbucket.org/biolab/orange/src/a4303110189426d004156ce053ddb35a410e428a/Orange/evaluation/scoring.py?fileviewer=file-view-default#scoring.py-2305).
+This is version 2, which was re-written from scratch and uses `matplotlib`.
+It has been tested on Python 2.7 and 3.3+. All code is distributed under the terms of
  the GNU General Public License Version 3.

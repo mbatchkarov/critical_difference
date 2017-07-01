@@ -2,13 +2,7 @@ from itertools import combinations
 from math import ceil
 
 import matplotlib.pylab as plt
-from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.lines import Line2D
-
-
-def print_figure(fig, *args, **kwargs):
-    canvas = FigureCanvasAgg(fig)
-    canvas.print_figure(*args, **kwargs)
 
 
 def _contained_in_larger_interval(i, j, not_sig):
@@ -25,10 +19,9 @@ def merge_nonsignificant_cliques(not_sig):
     return longest
 
 
-def do_plot(x, get_linked_methods, names=None,
+def do_plot(x, insignificant_indices, names=None,
             arrow_vgap=.2, link_voffset=.15, link_vgap=.1,
-            xlabel=None
-            ):
+            xlabel=None):
     """
     Draws a critical difference graph, which is used to display  the
     differences in methods' performance. This is inspired by the plots used in:
@@ -39,16 +32,12 @@ def do_plot(x, get_linked_methods, names=None,
     Methods are drawn on an axis and connected with a line if their
     performance is not significantly different.
 
-    Requires `matplotlib`
-
     :param x: List of average methods' scores.
     :type x: list-like
-
-    :param names: List of methods' names. :param get_linked_methods: callable
-    that returns a list of tuples of indices of all pairs of methods that are
-    not significantly different and should be connected in the diagram. Each
-    tuple must be sorted, and no duplicate tuples should be contained in the
-    list.
+    :param insignificant_indices: list of  tuples that specify the indices of
+    all pairs of methods that are not significantly different and should be
+    connected in the diagram. Each tuple must be sorted, and no duplicate
+    tuples should be contained in the list.
 
         Examples:
          - [(0, 1), (3, 4), (4, 5)] is correct
@@ -60,15 +49,21 @@ def do_plot(x, get_linked_methods, names=None,
 
     Note: the indices returned by this callable should refer to positions in
     `scores` after it is sorted in increasing order. It is to avoid confusion
-    this function raises if `scores` is not sorted. :param arrow_vgap:
-    vertical space between the arrows that point to method names.  Scale is 0
-    to 1, fraction of axis :param link_vgap: vertical space between the lines
-    that connect methods that are not significantly different. Scale is 0 to
-    1, fraction of axis size :param link_voffset: offset from the axis of the
-    links that connect non-significant methods
+    this function raises if `scores` is not sorted.
+
+    :param names: List of methods' names.
+    :param arrow_vgap: vertical space between the arrows that point to method
+     names.  Scale is 0 to 1, fraction of axis
+    :param link_vgap: vertical space between the lines that connect methods
+    that are not significantly different. Scale is 0 to 1, fraction of axis size
+    :param link_voffset: offset from the axis of the links that connect
+    non-significant methods
     """
     if names is None:
         names = list(range(len(x)))
+
+    for pair in insignificant_indices:
+        assert all(0 <= idx < len(x) for idx in pair), 'Check indices'
 
     # remove both axes and the frame: http://bit.ly/2tBIlWv
     fig, ax = plt.subplots(1, 1, figsize=(6, 2), subplot_kw=dict(frameon=False))
@@ -110,7 +105,7 @@ def do_plot(x, get_linked_methods, names=None,
                                     connectionstyle='angle,angleA=0,angleB=90'))
 
     # draw horizontal lines linking non-significant methods
-    linked_methods = merge_nonsignificant_cliques(get_linked_methods())
+    linked_methods = merge_nonsignificant_cliques(insignificant_indices)
     # where do the existing lines begin and end, (X, Y) coords
     used_endpoints = set()
     y = link_voffset
@@ -128,24 +123,19 @@ def do_plot(x, get_linked_methods, names=None,
         # 1. can we lower it any further- not if it would be too low and if it
         # would overlap another line
         if y > link_voffset and overlaps_any((x1, y - dy), used_endpoints):
-            # print('going down')
             y -= dy
         # 2. can we draw it at the current value of y- not if its left
         # end would overlap with the right end of an existing line
         # need to lift up a bit
         elif overlaps_any((x1, y), used_endpoints):
-            # print('going up')
             y += dy
         else:
             pass
-            # print('staying at the same y level')
 
         plt.hlines(y, x[x1], x[x2], linewidth=3)  # y, x0, x1
-        # print('Drawing from %r to %r at height %r' % (x1, x2, y))
 
         used_endpoints.add((x1, y))
         used_endpoints.add((x2, y))
-    return fig
 
 
 def get_close_pairs(scores, threshold=1):
@@ -159,14 +149,11 @@ def get_close_pairs(scores, threshold=1):
 
 
 if __name__ == "__main__":
-    def dummy_significance_test(*args):
-        return [
-            (0, 1), (1, 2), (2, 3),  # these three should be drawn on 2 level
-            (3, 4), (3, 5), (4, 5),  # this is a clique, just one line
-        ]
-
+    insignificant_indices = [
+        (0, 1), (1, 2), (2, 3),  # these three should be drawn on 2 level
+        (3, 4), (3, 5), (4, 5),  # this is a clique, just one line
+    ]
 
     scores = sorted([31.43, 20.00, 28.93, 19.64, 25, 33.4])
     names = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
-    fig = do_plot(scores, dummy_significance_test, names, xlabel='accuracy, %')
-    print_figure(fig, "test.png", format='png')
+    do_plot(scores, insignificant_indices, names, xlabel='accuracy, %')
